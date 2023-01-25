@@ -8,6 +8,7 @@ class Family < People{
     var father
     var mother
     var child
+//    var age = 123
     new(f,m,c){
         father = f
         mother = m
