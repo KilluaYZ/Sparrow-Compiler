@@ -38,5 +38,10 @@ ObjString* newObjString(VM* vm, const char* str, uint32_t length){
         if(length > 0){
             memcpt(objString->value.start, str, length);
         }
+        objString->value.start[length] = '\0';
+        hashObjString(objString);
+    }else{
+        MEM_ERROR("Allocation ObjString failed!");
     }
+    return objString;
 }

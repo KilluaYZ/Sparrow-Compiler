@@ -6,6 +6,7 @@
 
 struct vm{
     Class* stringClass;
+    Class* fnClass;
     //所有已分配对象链表
     ObjHeader* allObjects;
     //累计已分配的内存量
