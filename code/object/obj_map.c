@@ -26,8 +26,8 @@ static uint32_t hashObj(ObjHeader* objHeader){
         case OT_CLASS:  //计算class哈希
             return hashString(((Class*)objHeader)->name->value.start,((Class*)objHeader)->name->value.length);
         case OT_RANGE:
-            ObjRange* objRange = (ObjRange*)objHeader;
-            return hashNum(objRange->from) & hashNum(objRange->to);
+            {ObjRange* objRange = (ObjRange*)objHeader;
+            return hashNum(objRange->from) & hashNum(objRange->to);}
         case OT_STRING:
             return ((ObjString*)objHeader)->hashCode;
         default:
@@ -117,7 +117,7 @@ static Entry* findEntry(ObjMap* objMap, Value key){
     uint32_t index = hashValue(key) % objMap->capacity;
     Entry* entry;
     while(true){
-        entry = &objMap->entries[idx];
+        entry = &objMap->entries[index];
 
         //若该slot中的entry正好是该key的entry，找到返回
         if(valueIsEqual(entry->key,key)){

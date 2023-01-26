@@ -4,6 +4,16 @@
 
 #include "common.h"
 #include "header_obj.h"
+#include "obj_map.h"
+#include "obj_thread.h"
+
+//虚拟机执行结果
+//如果执行无误，可以将字符码输出到文件缓存，避免下次重新编译
+typedef enum vmResult{
+    VM_RESULT_SUCCESS,
+    VM_RESULT_ERROR
+} VMResult;
+
 struct vm{
     Class* stringClass;
     Class* fnClass;
