@@ -24,7 +24,7 @@ void hashObjString(ObjString* objString){
 //以str字符串创建ObjString对象，允许空串""
 ObjString* newObjString(VM* vm, const char* str, uint32_t length){
     //length为0时str必为NULL，length不为0时str不为NULL
-    ASSERT(length == 0 && str != NULL,"str length don't match str!");
+    ASSERT(length == 0 || str != NULL,"str length don't match str!");
 
     //+1是为了结尾的'\0'
     ObjString* objString = ALLOCATE_EXTRA(vm,ObjString,length+1);
@@ -36,7 +36,7 @@ ObjString* newObjString(VM* vm, const char* str, uint32_t length){
         //支持空字符串：str为null，length为0
         //如果非空则复制其内容
         if(length > 0){
-            memcpt(objString->value.start, str, length);
+            memcpy(objString->value.start, str, length);
         }
         objString->value.start[length] = '\0';
         hashObjString(objString);

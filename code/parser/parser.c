@@ -6,6 +6,8 @@
 #include"unicodeUtf8.h"
 #include<string.h>
 #include<ctype.h>
+#include"obj_string.h"
+
 
 //关键字结构
 struct keywordToken{
@@ -94,6 +96,59 @@ static void parserId(Parser* parser, TokenType type){
 
     parser->curToken.length = length;
 }
+
+//解析十六进制数字
+static void parseHexNum(Parser* parser) {
+   while (isxdigit(parser->curChar)) {
+      getNextChar(parser);
+   }
+}
+
+//解析十进制数字
+static void parseDecNum(Parser* parser) {
+   while (isdigit(parser->curChar)) {
+      getNextChar(parser);
+   }
+
+   //若有小数点
+   if (parser->curChar == '.' && isdigit(lookAheadChar(parser))) {
+      getNextChar(parser);
+      while (isdigit(parser->curChar)) { //解析小数点之后的数字
+	 getNextChar(parser);
+      }
+   }
+}
+
+//解析八进制
+static void parseOctNum(Parser* parser) {
+   while(parser->curChar >= '0' && parser->curChar < '8') {
+      getNextChar(parser);
+   } 
+}
+
+//解析八进制 十进制 十六进制 仅支持前缀形式,后缀形式不支持
+static void parseNum(Parser* parser) {
+   //十六进制的0x前缀
+   if (parser->curChar == '0' && matchNextChar(parser, 'x')) {
+      getNextChar(parser);  //跳过'x'
+      parseHexNum(parser);   //解析十六进制数字
+      parser->curToken.value = 
+	 NUM_TO_VALUE(strtol(parser->curToken.start, NULL, 16));
+   } else if (parser->curChar == '0' 
+	 && isdigit(lookAheadChar(parser))) {  // 八进制
+      parseOctNum(parser);
+      parser->curToken.value = 
+	 NUM_TO_VALUE(strtol(parser->curToken.start, NULL, 8));
+   } else {	  //解析十进制
+      parseDecNum(parser);
+      parser->curToken.value = NUM_TO_VALUE(strtod(parser->curToken.start, NULL));
+   }
+   //nextCharPtr会指向第1个不合法字符的下一个字符,因此-1
+   parser->curToken.length = 
+      (uint32_t)(parser->nextCharPtr - parser->curToken.start - 1);
+   parser->curToken.type = TOKEN_NUM;
+}
+
 
 //解析unicode码点
 static void parseUnicodeCodePoint(Parser* parser,ByteBuffer* buf){
@@ -201,6 +256,9 @@ static void parseString(Parser* parser){
             ByteBufferAdd(parser->vm, &str, parser->curChar);
         }
     }
+    //用识别到的字符串新建字符串对象储存到curToken的value中
+    ObjString* objString = newObjString(parser->vm,(const char*)str.datas,str.count);
+    parser->curToken.value = OBJ_TO_VALUE(objString);
     ByteBufferClear(parser->vm,&str);
 }
 
@@ -252,6 +310,7 @@ void getNextToken(Parser* parser){
     parser->curToken.type = TOKEN_EOF;
     parser->curToken.length = 0;
     parser->curToken.start=parser->nextCharPtr - 1;
+    parser->curToken.value = VT_TO_VALUE(VT_UNDEFINED);
     while(parser->curChar != '\0'){
         switch(parser->curChar){
             case ',':
@@ -382,6 +441,9 @@ void getNextToken(Parser* parser){
                 if(isalpha(parser->curChar) || parser->curChar == '_'){
                     //解析变量名的其余部分
                     parserId(parser,TOKEN_UNKNOWN);
+                }else if(isdigit(parser->curChar)){
+                    //数字
+                    parseNum(parser);
                 }else{
                     if(parser->curChar == '#' && matchNextChar(parser,'!')){
                         //跳过文件头#!对解释器的指定
@@ -429,7 +491,7 @@ void consumeNextToken(Parser* parser, TokenType expected,const char* errMsg){
 
 //由于sourceCode未必来自于文件file，有可能只是个字符串
 //file仅用于跟踪待编译的代码的标识符，方便报错
-void initParser(VM* vm, Parser* parser, const char* file, const char* sourceCode){
+void initParser(VM* vm, Parser* parser, const char* file, const char* sourceCode,ObjModule* objModule){
     parser->file = file;
     parser->sourceCode = sourceCode;
     parser->curChar = *parser->sourceCode;
@@ -441,5 +503,6 @@ void initParser(VM* vm, Parser* parser, const char* file, const char* sourceCode
     parser->preToken = parser->curToken;
     parser->interpolationExpectRightParenNum = 0;
     parser->vm = vm;
+    parser->curModule = objModule;
 }
 

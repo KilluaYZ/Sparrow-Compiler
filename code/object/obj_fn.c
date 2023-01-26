@@ -3,7 +3,7 @@
 #include"vm.h"
 
 //创建一个空函数
-ObjFn* newObjFn(VM* vm,ObjModule* objModule,uint32_t soltNum){
+ObjFn* newObjFn(VM* vm,ObjModule* objModule,uint32_t slotNum){
     ObjFn* objFn = ALLOCATE(vm,ObjFn);
     if(objFn == NULL){
         MEM_ERROR("allocate ObjFn failed!");

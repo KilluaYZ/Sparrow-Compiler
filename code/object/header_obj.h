@@ -28,7 +28,7 @@ typedef struct objHeader{
 
 //value类型
 typedef enum{
-    VT_UNDIFINED,   //未定义
+    VT_UNDEFINED,   //未定义
     VT_NULL,        //空值，不代表未定义
     VT_FALSE,       //布尔假
     VT_TRUE,        //布尔真

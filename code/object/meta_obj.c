@@ -11,10 +11,10 @@ ObjModule* newObjModule(VM* vm, const char* modName){
     }
 
     //ObjModule是信息对象，不属于任何一个类，所以class为NULL
-    initObjHeader(vm,&objModuel->objHeader,OT_MODULE,NULL);
+    initObjHeader(vm,&objModule->objHeader,OT_MODULE,NULL);
 
     StringBufferInit(&objModule->moduleVarName);
-    ValueBufferInit(&objModuel->moduleVarValue);
+    ValueBufferInit(&objModule->moduleVarValue);
 
     //核心模块名为NULL
     objModule->name = NULL;

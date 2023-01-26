@@ -3,7 +3,7 @@
 #define _VM_VM_H
 
 #include "common.h"
-
+#include "header_obj.h"
 struct vm{
     Class* stringClass;
     Class* fnClass;
