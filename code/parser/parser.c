@@ -305,11 +305,11 @@ static void skipComment(Parser* parser){
 
 //获得下一个token，可以理解为词法分析器
 void getNextToken(Parser* parser){
-    parser->preToken = parser->curToken;
+    parser->preToken = parser->curToken;// 记录当前token
     skipBlanks(parser); // 跳过待识别单词之前的空格
-    parser->curToken.type = TOKEN_EOF;
+    parser->curToken.type = TOKEN_EOF;//一些初始化操作
     parser->curToken.length = 0;
-    parser->curToken.start=parser->nextCharPtr - 1;
+    parser->curToken.start=parser->nextCharPtr - 1;//似乎可以用parser->curChar替代
     parser->curToken.value = VT_TO_VALUE(VT_UNDEFINED);
     while(parser->curChar != '\0'){
         switch(parser->curChar){
@@ -493,8 +493,8 @@ void consumeNextToken(Parser* parser, TokenType expected,const char* errMsg){
 //file仅用于跟踪待编译的代码的标识符，方便报错
 void initParser(VM* vm, Parser* parser, const char* file, const char* sourceCode,ObjModule* objModule){
     parser->file = file;
-    parser->sourceCode = sourceCode;
-    parser->curChar = *parser->sourceCode;
+    parser->sourceCode = sourceCode;        //源代码
+    parser->curChar = *parser->sourceCode;  //指向源代码的第一个字符
     parser->nextCharPtr = parser->sourceCode + 1;
     parser->curToken.lineNo = 1;
     parser->curToken.type = TOKEN_UNKNOWN;
