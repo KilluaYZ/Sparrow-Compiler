@@ -5,6 +5,9 @@
 #include "header_obj.h"
 #include "obj_string.h"
 #include "obj_fn.h"
+#include "obj_range.h"
+#include "obj_list.h"
+
 
 typedef enum {
    MT_NONE,     //空方法类型,并不等同于undefined
