@@ -95,7 +95,7 @@ static bool primObjectNotEqual(VM* vm UNUSED, Value* args){
 }
 
 //args[0] is args[1]: 类args[0]是否为类args[1]的子类
-static bool pirmObjectIs(VM* vm, Value* args){
+static bool primObjectIs(VM* vm, Value* args){
     //args[1]必须是class
     if(!VALUE_IS_CLASS(args[1])){
         RUN_ERROR("argument must be class!");
@@ -125,7 +125,7 @@ static bool primObjectToString(VM* vm UNUSED, Value* args){
 }
 
 //args[0].type: 返回对象args[0]的类
-static bool pirmObjectType(VM* vm, Value* args){
+static bool primObjectType(VM* vm, Value* args){
     Class* class = getClassOfObj(vm, args[0]);
     RET_OBJ(class);
 }
@@ -155,6 +155,65 @@ static bool primObjectmetaSame(VM* vm UNUSED, Value* args){
     RET_VALUE(boolValue);
 }
 
+//table中查找符号symbol，找到后返回索引，否则返回-1
+int getIndexFromSymbolTable(SymbolTable* table, const char* symbol, uint32_t length){
+    ASSERT(length != 0, "length of symbol is 0!");
+    uint32_t index = 0;
+    while(index < table->count){
+        if(length == table->datas[index].length && memcmp(table->datas[index].str, symbol, length) == 0){
+            return index;
+        }
+        index++;
+    }
+    return -1;
+}
+
+//往table中添加符号symbol，返回其索引
+int addSymbol(VM* vm, SymbolTable* table, const char* symbol, uint32_t length){
+    ASSERT(length != 0, "length of symbol is 0!");
+    String string;
+    string.str = ALLOCATE_ARRAY(vm, char, length+1);
+    memcpy(string.str,symbol,length);
+    string.str[length] = '\0';
+    string.length = length;
+    StringBufferAdd(vm, table, string);
+    return table->count - 1;
+}
+
+//定义类
+static Class* defineClass(VM* vm, ObjModule* objModule, const char* name){
+    //先创建类
+    Class* class = newRawClass(vm, name, 0);
+
+    //把类作为普通变量在模块中定义
+    defineModuleVar(vm, objModule, name, strlen(name), OBJ_TO_VALUE(class));
+    return class;
+}
+
+//使class->methods[index] = method;
+void bindMethod(VM* vm, Class* class, uint32_t index, Method method){
+    if(index >= class->methods.count){
+        //先扩展类函数buffer
+        Method emptyPad = {MT_NONE, {0}};
+        MethodBufferFillWrite(vm, &class->methods, emptyPad, index - class->methods.count+1);
+    }
+    class->methods.datas[index] = method;
+}
+
+//绑定基类
+void bindSuperClass(VM* vm, Class* subClass, Class* superClass){
+    subClass->superClass = superClass;
+    //继承基类属性数
+    subClass->fieldNum += superClass->fieldNum;
+
+    //继承基类方法
+    uint32_t idx = 0;
+    while(idx < superClass->methods.count){
+        bindMethod(vm, subClass, idx, superClass->methods.datas[idx]);
+        idx++;
+    }
+}
+
 //执行模块
 VMResult executeModule(VM* vm, Value moduleName, const char* moduleCode) {
     return VM_RESULT_ERROR;
@@ -162,11 +221,44 @@ VMResult executeModule(VM* vm, Value moduleName, const char* moduleCode) {
 
 //编译核心模块
 void buildCore(VM* vm){
-    //创建核心模块，录入到vm->allModules
     //NULL 为核心模块的name   
     ObjModule* coreModule = newObjModule(vm,NULL);
 
+    //创建核心模块，录入到vm->allModules
     mapSet(vm, vm->allModule, CORE_MODULE, OBJ_TO_VALUE(coreModule));
     
+    //创建object类并绑定方法
+    vm->objectClass = defineClass(vm, coreModule, "object");
+    PRIM_METHOD_BIND(vm->objectClass, "!", primObjectNot);    
+    PRIM_METHOD_BIND(vm->objectClass, "==(_)", primObjectEqual);    
+    PRIM_METHOD_BIND(vm->objectClass, "!=(_)", primObjectNotEqual);    
+    PRIM_METHOD_BIND(vm->objectClass, "is(_)", primObjectIs);    
+    PRIM_METHOD_BIND(vm->objectClass, "toString", primObjectToString);    
+    PRIM_METHOD_BIND(vm->objectClass, "type", primObjectType);    
+
+    //定义classOfClass类,他是所有meta类的meta类和基类
+    vm->classOfClass = defineClass(vm, coreModule, "class");
+
+    //objectClass是任何类的基类
+    bindSuperClass(vm, vm->classOfClass, vm->objectClass);
+
+    PRIM_METHOD_BIND(vm->classOfClass, "name", primClassName);
+    PRIM_METHOD_BIND(vm->classOfClass, "supertype", primClassSupertype);
+    PRIM_METHOD_BIND(vm->classOfClass, "toString", primClassToString);
+
+    //定义object类的原信息类objectMetaclass，它无需挂载到vm
+    Class* objectMetaclass = defineClass(vm, coreModule, "objectMeta");
+
+    //classOfClass类是所有meta类的meta类和基类
+    bindSuperClass(vm,objectMetaclass,vm->classOfClass);
+
+    //类型比较
+    PRIM_METHOD_BIND(objectMetaclass,"same(_,_)",primObjectmetaSame);
+
+    //绑定各自的meta类
+    vm->objectClass->objHeader.class = objectMetaclass;
+    objectMetaclass->objHeader.class = vm->classOfClass;
+    //形成闭环
+    vm->classOfClass->objHeader.class = vm->classOfClass;
 }
 
