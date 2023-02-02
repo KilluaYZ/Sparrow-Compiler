@@ -17,18 +17,21 @@ static void runFile(const char* path){
 
     VM* vm = newVM();
     const char* sourceCode = readFile(path);
-    struct parser parser;
-    initParser(vm,&parser, path, sourceCode, NULL);
-    #include "token.list"
-    while(parser.curToken.type != TOKEN_EOF){
-        getNextToken(&parser);
-        printf("%dL: %s (",parser.curToken.lineNo, tokenArray[parser.curToken.type]);
-        uint32_t idx = 0;
-        while(idx < parser.curToken.length){
-            printf("%c",*(parser.curToken.start+idx++));
-        }
-        printf(")\n");
-    }
+    // struct parser parser;
+    // initParser(vm,&parser, path, sourceCode, NULL);
+    // #include "token.list"
+    // while(parser.curToken.type != TOKEN_EOF){
+    //     getNextToken(&parser);
+    //     printf("%dL: %s (",parser.curToken.lineNo, tokenArray[parser.curToken.type]);
+    //     uint32_t idx = 0;
+    //     while(idx < parser.curToken.length){
+    //         printf("%c",*(parser.curToken.start+idx++));
+    //     }
+    //     printf(")\n");
+    // }
+
+    executeModule(vm,OBJ_TO_VALUE(newObjString(vm,path,strlen(path))),sourceCode);
+
 }
 
 int main(int argc, const char** argv){
